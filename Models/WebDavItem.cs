@@ -4,16 +4,11 @@ using PBWebDAV.Interfaces;
 namespace PBWebDAV.Models
 {
     /// <summary>
-    /// Concrete, COM-visible implementation of <see cref="IWebDavItem"/>.
-    ///
-    /// Instances are created only by <c>PropFindXmlParser</c> inside this assembly.
-    /// External callers (COM / PowerBuilder) receive them via <see cref="IWebDavItem"/>
-    /// and can only read the properties — the setters are internal.
+    /// Internal implementation of <see cref="IWebDavItem"/>.
+    /// Created only by <c>PropFindXmlParser</c>; PowerBuilder accesses data
+    /// via the flat <c>GetItemXxx(index)</c> methods on <c>WebDavClient</c>.
     /// </summary>
-    [ComVisible(true)]
-    [Guid("E6A8B0C2-F5A7-4C9D-DE2A-BF0E9D8C7B6E")]
-    [ClassInterface(ClassInterfaceType.None)]   // expose only IWebDavItem to COM
-    [ProgId("PBWebDAV.WebDavItem")]
+    [ComVisible(false)]
     public sealed class WebDavItem : IWebDavItem
     {
         // COM requires a public parameterless constructor on CoClasses.

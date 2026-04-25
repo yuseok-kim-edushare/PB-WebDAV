@@ -55,16 +55,15 @@ This library fills the gap by providing:
 
 ```powerscript
 PBWebDAV.WebDavClient     oClient
-PBWebDAV.IWebDavItem      oItem
 long                      nCount, i
 
 oClient = CREATE PBWebDAV.WebDavClient
 oClient.Initialize("https://dav.example.com/files/", "alice", "s3cr3t")
 
 nCount = oClient.ListDirectory("/documents/")
-FOR i = 0 TO nCount - 1
-    oItem = oClient.GetItem(i)
-    MessageBox("Item", oItem.DisplayName + " / " + String(oItem.ContentLength) + " bytes")
+FOR i = 1 TO nCount - 1   // index 0 is the collection itself
+    MessageBox("Item", oClient.GetItemDisplayName(i) + " / " + &
+               String(oClient.GetItemContentLength(i)) + " bytes")
 NEXT
 
 oClient.DownloadFile("/documents/report.pdf", "C:\Temp\report.pdf")
@@ -117,7 +116,15 @@ DESTROY oClient
 | `SetTimeout(seconds)` | Override 30 s default |
 | `ListDirectory(path)` → `int` | PROPFIND Depth:1; returns item count, –1 on error |
 | `GetItemCount()` → `int` | Count from last ListDirectory |
-| `GetItem(index)` → `IWebDavItem` | Index 0 = the collection itself |
+| `GetItemHref(index)` → `string` | Href of item at index (0 = collection) |
+| `GetItemDisplayName(index)` → `string` | Display name of item at index |
+| `GetItemIsCollection(index)` → `bool` | True when item is a directory |
+| `GetItemContentLength(index)` → `long` | File size in bytes |
+| `GetItemContentType(index)` → `string` | MIME type |
+| `GetItemLastModified(index)` → `string` | RFC 1123 last-modified date |
+| `GetItemETag(index)` → `string` | ETag value |
+| `GetItemCreationDate(index)` → `string` | ISO 8601 creation date |
+| `GetItemStatusCode(index)` → `int` | HTTP status of this propstat entry |
 | `DownloadFile(remote, local)` → `bool` | GET → local file via pipeline |
 | `UploadFile(local, remote)` → `bool` | local file → PUT via pipeline |
 | `DeleteItem(path)` → `bool` | HTTP DELETE |
@@ -128,9 +135,8 @@ DESTROY oClient
 | `GetLastError()` → `string` | Human-readable error from last call |
 | `GetLastStatusCode()` → `int` | HTTP status from last call |
 
-### `IWebDavItem`
-
-`Href`, `DisplayName`, `IsCollection`, `ContentLength`, `ContentType`, `LastModified`, `ETag`, `CreationDate`, `StatusCode`
+> **Note:** `IWebDavItem` and `WebDavItem` are internal implementation details — not exposed to COM or PowerBuilder.
+> Use the `GetItemXxx(index)` methods above to access item properties; they return COM-safe primitives only.
 
 ---
 

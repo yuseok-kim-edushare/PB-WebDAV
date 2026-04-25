@@ -46,8 +46,17 @@ PowerBuilder 2019 R3에는 WebDAV 기능이 내장되어 있지 않습니다.
 
 ```powerscript
 PBWebDAV.WebDavClient oClient
+long                  nCount, i
+
 oClient = CREATE PBWebDAV.WebDavClient
 oClient.Initialize("https://dav.example.com/files/", "alice", "s3cr3t")
+
+nCount = oClient.ListDirectory("/documents/")
+FOR i = 1 TO nCount - 1   // index 0은 컬렉션(디렉터리) 자신
+    MessageBox("항목", oClient.GetItemDisplayName(i) + " / " + &
+               String(oClient.GetItemContentLength(i)) + " bytes")
+NEXT
+
 oClient.DownloadFile("/documents/report.pdf", "C:\Temp\report.pdf")
 DESTROY oClient
 ```
@@ -60,6 +69,25 @@ DESTROY oClient
 :: 32비트 PowerBuilder 2019 R3
 %WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe PBWebDAV.dll /tlb /codebase
 ```
+
+---
+
+## 항목 접근 API
+
+PowerBuilder 및 COM 환경에서는 관리 클래스(`IWebDavItem`) 반환 타입을 처리할 수 없습니다.  
+따라서 항목 속성은 각각 기본 타입을 반환하는 flat getter 메서드로 제공됩니다:
+
+| 메서드 | 설명 |
+|---|---|
+| `GetItemHref(index)` → `string` | 항목의 Href (index 0 = 컬렉션 자신) |
+| `GetItemDisplayName(index)` → `string` | 표시 이름 |
+| `GetItemIsCollection(index)` → `bool` | 디렉터리 여부 |
+| `GetItemContentLength(index)` → `long` | 파일 크기 (bytes) |
+| `GetItemContentType(index)` → `string` | MIME 타입 |
+| `GetItemLastModified(index)` → `string` | RFC 1123 최종 수정일 |
+| `GetItemETag(index)` → `string` | ETag |
+| `GetItemCreationDate(index)` → `string` | ISO 8601 생성일 |
+| `GetItemStatusCode(index)` → `int` | HTTP 상태 코드 |
 
 ---
 

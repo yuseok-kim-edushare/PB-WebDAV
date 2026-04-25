@@ -129,13 +129,32 @@ namespace PBWebDAV
         /// <inheritdoc/>
         public int GetItemCount() => _listing.Count;
 
+        // ── Per-property item accessors ───────────────────────────────────────
+
         /// <inheritdoc/>
-        public IWebDavItem GetItem(int index)
+        public string GetItemHref(int index)         => SafeGetItem(index).Href;
+        /// <inheritdoc/>
+        public string GetItemDisplayName(int index)  => SafeGetItem(index).DisplayName;
+        /// <inheritdoc/>
+        public bool   GetItemIsCollection(int index) => SafeGetItem(index).IsCollection;
+        /// <inheritdoc/>
+        public long   GetItemContentLength(int index)=> SafeGetItem(index).ContentLength;
+        /// <inheritdoc/>
+        public string GetItemContentType(int index)  => SafeGetItem(index).ContentType;
+        /// <inheritdoc/>
+        public string GetItemLastModified(int index) => SafeGetItem(index).LastModified;
+        /// <inheritdoc/>
+        public string GetItemETag(int index)         => SafeGetItem(index).ETag;
+        /// <inheritdoc/>
+        public string GetItemCreationDate(int index) => SafeGetItem(index).CreationDate;
+        /// <inheritdoc/>
+        public int    GetItemStatusCode(int index)   => SafeGetItem(index).StatusCode;
+
+        private WebDavItem SafeGetItem(int index)
         {
             if (index < 0 || index >= _listing.Count)
                 throw new ArgumentOutOfRangeException(nameof(index),
                     $"Index {index} is out of range. Item count: {_listing.Count}");
-
             return _listing[index];
         }
 

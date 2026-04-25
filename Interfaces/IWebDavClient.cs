@@ -59,12 +59,46 @@ namespace PBWebDAV.Interfaces
         [DispId(5)]
         int GetItemCount();
 
-        /// <summary>
-        /// Returns a single item from the last ListDirectory result.
-        /// Index 0 is the collection itself; 1..N-1 are the children.
-        /// </summary>
-        [DispId(6)]
-        IWebDavItem GetItem(int index);
+        // ── Per-property item accessors ────────────────────────────────────────
+        // PowerBuilder cannot use a managed class/interface as a return type.
+        // These flat getters each return a COM-safe primitive instead of IWebDavItem.
+        // Index 0 is the collection itself; 1..N-1 are the children.
+
+        /// <summary>Returns the Href of item at <paramref name="index"/>.</summary>
+        [DispId(16)]
+        string GetItemHref(int index);
+
+        /// <summary>Returns the DisplayName of item at <paramref name="index"/>.</summary>
+        [DispId(17)]
+        string GetItemDisplayName(int index);
+
+        /// <summary>Returns true when the item at <paramref name="index"/> is a collection.</summary>
+        [DispId(18)]
+        bool GetItemIsCollection(int index);
+
+        /// <summary>Returns the content length in bytes of item at <paramref name="index"/>.</summary>
+        [DispId(19)]
+        long GetItemContentLength(int index);
+
+        /// <summary>Returns the MIME content-type of item at <paramref name="index"/>.</summary>
+        [DispId(20)]
+        string GetItemContentType(int index);
+
+        /// <summary>Returns the RFC 1123 last-modified string of item at <paramref name="index"/>.</summary>
+        [DispId(21)]
+        string GetItemLastModified(int index);
+
+        /// <summary>Returns the ETag of item at <paramref name="index"/>.</summary>
+        [DispId(22)]
+        string GetItemETag(int index);
+
+        /// <summary>Returns the ISO 8601 creation-date string of item at <paramref name="index"/>.</summary>
+        [DispId(23)]
+        string GetItemCreationDate(int index);
+
+        /// <summary>Returns the HTTP status code of item at <paramref name="index"/>.</summary>
+        [DispId(24)]
+        int GetItemStatusCode(int index);
 
         // ── File transfer (GET / PUT) ──────────────────────────────────────────
 
