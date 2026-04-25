@@ -69,7 +69,8 @@ jobs:
           $publishDir\System.Memory.dll `
           $publishDir\System.Buffers.dll `
           $publishDir\System.Numerics.Vectors.dll `
-          $publishDir\System.Runtime.CompilerServices.Unsafe.dll
+          $publishDir\System.Runtime.CompilerServices.Unsafe.dll `
+          $publishDir\System.Threading.Tasks.Extensions.dll
 
     # ── Generate type library (.tlb) for COM consumers ─────────────────────────
     - name: Generate type library (PBWebDAV.tlb)
