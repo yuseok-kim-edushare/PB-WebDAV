@@ -1,0 +1,7 @@
+Save Format v3.0(19990112)
+@begin Targets
+ 0 "pb-webdav-sample.pbt";
+@end;
+DefaultTarget "pb-webdav-sample.pbt";
+DefaultExportEncode "UTF-8";
+DefaultRemoteTarget "pb-webdav-sample.pbt";
