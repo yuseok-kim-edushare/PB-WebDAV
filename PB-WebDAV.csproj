@@ -32,7 +32,7 @@
     <!-- Span<T> / Memory<T> / SequenceReader<T> back-ports -->
     <PackageReference Include="System.Memory"  Version="4.5.5" />
     <!-- ArrayPool<T> -->
-    <PackageReference Include="System.Buffers" Version="4.5.1" />
+    <PackageReference Include="System.Buffers" Version="4.6.1" />
   </ItemGroup>
 
   <!-- net48 ships System.Net.Http in-box but SDK-style projects need an explicit reference -->
