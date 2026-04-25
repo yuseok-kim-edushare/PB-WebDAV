@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>PBWebDAV</AssemblyName>
+    <RootNamespace>PBWebDAV</RootNamespace>
+    <Platforms>AnyCPU;x86;x64</Platforms>
+
+    <!-- Modern C# on classic .NET Framework -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>false</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <Optimize Condition="'$(Configuration)' == 'Release'">true</Optimize>
+
+    <!-- COM interop: suppress auto-generated AssemblyInfo so we own it -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+    <!--
+      COM registration note:
+        32-bit PB 2019 R3 → register with:
+          %WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe PBWebDAV.dll /tlb /codebase
+        64-bit host → register with:
+          %WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe PBWebDAV.dll /tlb /codebase
+      Strong-naming is recommended when /codebase is not used.
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Memory-efficient pipeline I/O — works on net48 via netstandard2.0 TFM -->
+    <PackageReference Include="System.IO.Pipelines" Version="8.0.0" />
+    <!-- Span<T> / Memory<T> / SequenceReader<T> back-ports -->
+    <PackageReference Include="System.Memory"  Version="4.5.5" />
+    <!-- ArrayPool<T> -->
+    <PackageReference Include="System.Buffers" Version="4.5.1" />
+  </ItemGroup>
+
+  <!-- net48 ships System.Net.Http in-box but SDK-style projects need an explicit reference -->
+  <ItemGroup>
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+</Project>
