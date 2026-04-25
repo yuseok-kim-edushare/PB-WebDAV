@@ -230,16 +230,6 @@ namespace PBWebDAV
                 using Stream responseStream =
                     await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-                // For very large or potentially malicious downloads without Content-Length, Limit checks are tricky without breaking streams,
-                // but checking headers if available helps.
-                if (response.Content.Headers.ContentLength.HasValue && 
-                    response.Content.Headers.ContentLength.Value > 1024L * 1024L * 1024L * 10L) // 10 GB limit
-                {
-                   _lastError = $"File is too large ({response.Content.Headers.ContentLength.Value} bytes). Maximum allowed is 10GB.";
-                   System.Diagnostics.Trace.TraceWarning($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [PBWebDAV] {_lastError}");
-                   return false; 
-                }
-
                 await PipelineStreamCopier
                     .CopyToFileAsync(responseStream, localPath)
                     .ConfigureAwait(false);
