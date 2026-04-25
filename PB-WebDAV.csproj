@@ -42,6 +42,7 @@
 
   <ItemGroup>
     <Compile Remove="PBWebDAV.Tests\**\*" />
+    <Compile Remove="PB Sample 2019R3+\**\*" />
   </ItemGroup>
 
   <PropertyGroup>
