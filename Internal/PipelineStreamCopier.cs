@@ -35,15 +35,36 @@ namespace PBWebDAV.Internal
             string destinationPath,
             CancellationToken cancellationToken = default)
         {
-            using var fileStream = new FileStream(
-                destinationPath,
-                FileMode.Create,
-                FileAccess.Write,
-                FileShare.None,
-                bufferSize: BufferSize,
-                useAsync: true);
-
-            await CopyViaPipelineAsync(source, fileStream, cancellationToken).ConfigureAwait(false);
+            string tempPath = destinationPath + ".tmp" + Guid.NewGuid().ToString("N");
+            bool success = false;
+            try
+            {
+                using (var fileStream = new FileStream(
+                    tempPath,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.None,
+                    bufferSize: BufferSize,
+                    useAsync: true))
+                {
+                    await CopyViaPipelineAsync(source, fileStream, cancellationToken).ConfigureAwait(false);
+                }
+                
+                // Atomically move the temporary file to the final destination
+                if (File.Exists(destinationPath))
+                {
+                    File.Delete(destinationPath);
+                }
+                File.Move(tempPath, destinationPath);
+                success = true;
+            }
+            finally
+            {
+                if (!success && File.Exists(tempPath))
+                {
+                    try { File.Delete(tempPath); } catch { /* Ignore cleanup errors */ }
+                }
+            }
         }
 
         /// <summary>

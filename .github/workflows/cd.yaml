@@ -44,7 +44,7 @@ jobs:
       run: dotnet restore PB-WebDAV.csproj
 
     - name: Build solution (Release)
-      run: dotnet publish PB-WebDAV.csproj --configuration Release --no-restore
+      run: dotnet publish PB-WebDAV.csproj --configuration Release --no-restore -p:DelaySign=true
 
     # ── ILRepack: merge all NuGet dependencies into a single DLL ──────────────
     - name: Install ILRepack
@@ -64,6 +64,7 @@ jobs:
           /union `
           /copyattrs `
           /internalize `
+          /keyfile:${{ github.workspace }}\PBWebDAV.snk `
           $publishDir\PBWebDAV.dll `
           $publishDir\System.IO.Pipelines.dll `
           $publishDir\System.Memory.dll `
@@ -88,8 +89,14 @@ jobs:
       id: get_latest_release
       shell: pwsh
       run: |
-        $latestRelease = (Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/latest" `
-                          -ErrorAction SilentlyContinue).tag_name
+        $latestRelease = ""
+        try {
+            $response = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/latest" -ErrorAction Stop
+            $latestRelease = $response.tag_name
+        } catch {
+            Write-Host "No previous release found or API returned an error: $($_.Exception.Message)"
+        }
+        
         if (-not $latestRelease) { $latestRelease = "0.0.0" }
         Write-Output "Latest release version: $latestRelease"
         echo "latest_release=$latestRelease" >> $env:GITHUB_ENV
@@ -121,17 +128,13 @@ jobs:
         $releaseNotes += "`n### Files changed`n"
         $releaseNotes += (git diff HEAD ^$latestRelease --compact-summary 2>$null) -join "`n"
         $releaseNotes | Out-File -FilePath releaseNotes.txt -Encoding utf8
-        $releaseNotesContent = Get-Content -Path releaseNotes.txt -Raw
-        echo "release_notes<<EOF" >> $env:GITHUB_ENV
-        echo "$releaseNotesContent" >> $env:GITHUB_ENV
-        echo "EOF" >> $env:GITHUB_ENV
 
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
       with:
         files: |
           ${{ github.workspace }}\release-files\PBWebDAV.dll
           ${{ github.workspace }}\release-files\PBWebDAV.tlb
         tag_name: ${{ env.new_release }}
         name: ${{ env.new_release }}
-        body: ${{ env.release_notes }}
+        body_path: releaseNotes.txt

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 using PBWebDAV.Models;
 
@@ -33,20 +35,22 @@ namespace PBWebDAV.Internal
             if (string.IsNullOrWhiteSpace(xmlContent))
                 return items;
 
-            try
+            // Set size limits to prevent XML billion laughs / out-of-memory attacks
+            var settings = new XmlReaderSettings
             {
-                XDocument doc = XDocument.Parse(xmlContent);
+                DtdProcessing = DtdProcessing.Prohibit,
+                MaxCharactersInDocument = 1024 * 1024 * 256, // 256 MB string length max
+                MaxCharactersFromEntities = 1024 * 1024 * 10 // 10 MB max entity expansion
+            };
 
-                foreach (XElement response in doc.Descendants(Dav + "response"))
-                {
-                    WebDavItem? item = ParseResponse(response);
-                    if (item is not null)
-                        items.Add(item);
-                }
-            }
-            catch
+            using var reader = XmlReader.Create(new StringReader(xmlContent), settings);
+            XDocument doc = XDocument.Load(reader);
+
+            foreach (XElement response in doc.Descendants(Dav + "response"))
             {
-                // Return whatever was parsed before the error.
+                WebDavItem? item = ParseResponse(response);
+                if (item is not null)
+                    items.Add(item);
             }
 
             return items;

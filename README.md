@@ -156,6 +156,17 @@ CI/CD commands are in [`.github/workflows/`](.github/workflows/).
 
 ---
 
+## Troubleshooting & Logging
+
+When something goes wrong (e.g., connection issues, authentication failures, Server-Side logic errors), you don't need to check PB application event viewers or Windows AD events.
+
+The library automatically generates daily log files tracking all requests, errors, and system warnings in the following location:
+- **`C:\Temp\pb-webdav-dll.yyyy-MM-dd.log`** (e.g. `C:\Temp\pb-webdav-dll.2026-04-25.log`)
+
+Whenever you need technical support or want to investigate an issue, simply check or attach this file.
+
+---
+
 ## License
 
 MIT License — Copyright (c) 2026 김유석(Yu Seok Kim)  
