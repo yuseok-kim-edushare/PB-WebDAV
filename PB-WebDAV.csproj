@@ -40,4 +40,14 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="PBWebDAV.Tests\**\*" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+    <DelaySign>false</DelaySign>
+    <AssemblyOriginatorKeyFile>PBWebDAV.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+
 </Project>

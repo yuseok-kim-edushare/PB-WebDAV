@@ -69,6 +69,36 @@ namespace PBWebDAV
         // COM requires a public parameterless constructor on CoClasses.
         public WebDavClient() { }
 
+        // Store credentials to allow re-initialization on Timeout change.
+        private string? _username;
+        private string? _password;
+        private string? _proxyUrl;
+        private string? _proxyUser;
+        private string? _proxyPass;
+
+        static WebDavClient()
+        {
+            try
+            {
+                string logDir = @"C:\Temp";
+                if (!Directory.Exists(logDir))
+                {
+                    Directory.CreateDirectory(logDir);
+                }
+                
+                string dateStr = DateTime.Now.ToString("yyyy-MM-dd");
+                string logFile = Path.Combine(logDir, $"pb-webdav-dll.{dateStr}.log");
+                
+                var listener = new System.Diagnostics.TextWriterTraceListener(logFile, "PBWebDAVFileListener");
+                System.Diagnostics.Trace.Listeners.Add(listener);
+                System.Diagnostics.Trace.AutoFlush = true;
+            }
+            catch
+            {
+                // Ignore initialization errors for the logger to avoid crashing the host process
+            }
+        }
+
         // ── Lifecycle ─────────────────────────────────────────────────────────
 
         /// <inheritdoc/>
@@ -89,8 +119,10 @@ namespace PBWebDAV
         public void SetTimeout(int timeoutSeconds)
         {
             _timeoutSec = timeoutSeconds > 0 ? timeoutSeconds : 30;
-            _http?.Dispose();
-            _http = null; // force re-init on next operation if already built
+            if (_http != null && !string.IsNullOrEmpty(_baseUrl))
+            {
+                InitCore(_baseUrl, _username ?? "", _password ?? "", _proxyUrl, _proxyUser, _proxyPass);
+            }
         }
 
         // ── Directory listing ─────────────────────────────────────────────────
@@ -116,13 +148,23 @@ namespace PBWebDAV
                 {
                     _lastError = FormatHttpError("PROPFIND", response);
                     _listing.Clear();
-                    return 0;
+                    return -1;
                 }
 
                 string xml = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                _listing  = PropFindXmlParser.Parse(xml);
-                _lastError = string.Empty;
-                return _listing.Count;
+                try
+                {
+                    _listing = PropFindXmlParser.Parse(xml);
+                    _lastError = string.Empty;
+                    return _listing.Count;
+                }
+                catch (Exception ex)
+                {
+                    _lastError = $"XML Parsing Error: {ex.Message}";
+                    System.Diagnostics.Trace.TraceError($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [PBWebDAV] {_lastError}");
+                    _listing.Clear();
+                    return -1;
+                }
             });
         }
 
@@ -132,29 +174,32 @@ namespace PBWebDAV
         // ── Per-property item accessors ───────────────────────────────────────
 
         /// <inheritdoc/>
-        public string GetItemHref(int index)         => SafeGetItem(index).Href;
+        public string GetItemHref(int index)         { var item = SafeGetItem(index); return item != null ? item.Href : string.Empty; }
         /// <inheritdoc/>
-        public string GetItemDisplayName(int index)  => SafeGetItem(index).DisplayName;
+        public string GetItemDisplayName(int index)  { var item = SafeGetItem(index); return item != null ? item.DisplayName : string.Empty; }
         /// <inheritdoc/>
-        public bool   GetItemIsCollection(int index) => SafeGetItem(index).IsCollection;
+        public bool   GetItemIsCollection(int index) { var item = SafeGetItem(index); return item != null && item.IsCollection; }
         /// <inheritdoc/>
-        public long   GetItemContentLength(int index)=> SafeGetItem(index).ContentLength;
+        public long   GetItemContentLength(int index){ var item = SafeGetItem(index); return item != null ? item.ContentLength : -1; }
         /// <inheritdoc/>
-        public string GetItemContentType(int index)  => SafeGetItem(index).ContentType;
+        public string GetItemContentType(int index)  { var item = SafeGetItem(index); return item != null ? item.ContentType : string.Empty; }
         /// <inheritdoc/>
-        public string GetItemLastModified(int index) => SafeGetItem(index).LastModified;
+        public string GetItemLastModified(int index) { var item = SafeGetItem(index); return item != null ? item.LastModified : string.Empty; }
         /// <inheritdoc/>
-        public string GetItemETag(int index)         => SafeGetItem(index).ETag;
+        public string GetItemETag(int index)         { var item = SafeGetItem(index); return item != null ? item.ETag : string.Empty; }
         /// <inheritdoc/>
-        public string GetItemCreationDate(int index) => SafeGetItem(index).CreationDate;
+        public string GetItemCreationDate(int index) { var item = SafeGetItem(index); return item != null ? item.CreationDate : string.Empty; }
         /// <inheritdoc/>
-        public int    GetItemStatusCode(int index)   => SafeGetItem(index).StatusCode;
+        public int    GetItemStatusCode(int index)   { var item = SafeGetItem(index); return item != null ? item.StatusCode : -1; }
 
-        private WebDavItem SafeGetItem(int index)
+        private WebDavItem? SafeGetItem(int index)
         {
             if (index < 0 || index >= _listing.Count)
-                throw new ArgumentOutOfRangeException(nameof(index),
-                    $"Index {index} is out of range. Item count: {_listing.Count}");
+            {
+                _lastError = $"Index {index} is out of range. Item count: {_listing.Count}";
+                System.Diagnostics.Trace.TraceWarning($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [PBWebDAV] {_lastError}");
+                return null;
+            }
             return _listing[index];
         }
 
@@ -185,6 +230,16 @@ namespace PBWebDAV
                 using Stream responseStream =
                     await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
+                // For very large or potentially malicious downloads without Content-Length, Limit checks are tricky without breaking streams,
+                // but checking headers if available helps.
+                if (response.Content.Headers.ContentLength.HasValue && 
+                    response.Content.Headers.ContentLength.Value > 1024L * 1024L * 1024L * 10L) // 10 GB limit
+                {
+                   _lastError = $"File is too large ({response.Content.Headers.ContentLength.Value} bytes). Maximum allowed is 10GB.";
+                   System.Diagnostics.Trace.TraceWarning($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [PBWebDAV] {_lastError}");
+                   return false; 
+                }
+
                 await PipelineStreamCopier
                     .CopyToFileAsync(responseStream, localPath)
                     .ConfigureAwait(false);
@@ -202,15 +257,18 @@ namespace PBWebDAV
             if (!File.Exists(localPath))
             {
                 _lastError = $"Local file not found: {localPath}";
+                System.Diagnostics.Trace.TraceWarning($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [PBWebDAV] {_lastError}");
                 return false;
             }
 
             return RunSync(async () =>
             {
-                // PipeReader-backed stream: the file is read in pool-managed chunks
-                // that are fed directly into HttpClient's request pipeline.
-                using var pipe = new PipelineReadStream(localPath);
-                using var content = new StreamContent(pipe, bufferSize: 65_536);
+                // Upload directly from a FileStream into the StreamContent.
+                // StreamContent will inherently call ReadAsync iteratively without loading the
+                // entire file into memory; adding an intermediate Pipe layer provides no
+                // benefit here and only adds complexity.
+                using var fs = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 65_536, useAsync: true);
+                using var content = new StreamContent(fs, bufferSize: 65_536);
 
                 // Let the server infer the content-type; set octet-stream as a safe default.
                 content.Headers.ContentType =
@@ -352,6 +410,12 @@ namespace PBWebDAV
             string? proxyUser,
             string? proxyPass)
         {
+            _username = username;
+            _password = password;
+            _proxyUrl = proxyUrl;
+            _proxyUser = proxyUser;
+            _proxyPass = proxyPass;
+
             _http?.Dispose();
             _http   = null;
             _listing.Clear();
@@ -362,8 +426,7 @@ namespace PBWebDAV
 
             var handler = new HttpClientHandler
             {
-                AllowAutoRedirect    = true,
-                MaxAutomaticRedirections = 5,
+                AllowAutoRedirect    = false,
                 UseDefaultCredentials = false,
                 // TLS 1.2 is the default on .NET 4.8; no extra configuration needed.
             };
@@ -381,7 +444,7 @@ namespace PBWebDAV
                 {
                     Credentials = !string.IsNullOrEmpty(proxyUser)
                         ? new NetworkCredential(proxyUser, proxyPass)
-                        : CredentialCache.DefaultCredentials
+                        : null
                 };
             }
 
@@ -398,12 +461,14 @@ namespace PBWebDAV
             if (_http is null)
             {
                 _lastError = "WebDavClient is not initialised. Call Initialize() first.";
+                System.Diagnostics.Trace.TraceError($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [PBWebDAV] {_lastError}");
                 return false;
             }
 
             if (_disposed)
             {
                 _lastError = "WebDavClient has been disposed.";
+                System.Diagnostics.Trace.TraceError($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [PBWebDAV] {_lastError}");
                 return false;
             }
 
@@ -452,15 +517,34 @@ namespace PBWebDAV
         /// </summary>
         private Uri BuildUri(string path)
         {
+            Uri result;
             if (Uri.TryCreate(path, UriKind.Absolute, out Uri? abs))
-                return abs;
+            {
+                result = abs;
+            }
+            else
+            {
+                string combined = _baseUrl + "/" + path.TrimStart('/');
+                result = new Uri(combined);
+            }
 
-            string combined = _baseUrl + "/" + path.TrimStart('/');
-            return new Uri(combined);
+            if (!string.IsNullOrEmpty(_baseUrl) && Uri.TryCreate(_baseUrl, UriKind.Absolute, out Uri? baseUri))
+            {
+                if (!string.Equals(result.Host, baseUri.Host, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException($"Security: Target host '{result.Host}' does not match base URL host '{baseUri.Host}'.");
+                }
+            }
+
+            return result;
         }
 
         private static string FormatHttpError(string verb, HttpResponseMessage response)
-            => $"{verb} failed: {(int)response.StatusCode} {response.ReasonPhrase}";
+        {
+            string msg = $"{verb} failed: {(int)response.StatusCode} {response.ReasonPhrase}";
+            System.Diagnostics.Trace.TraceError($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [PBWebDAV] {msg}");
+            return msg;
+        }
 
         /// <summary>
         /// Safely bridges async → sync across the COM/STA boundary.
@@ -473,61 +557,5 @@ namespace PBWebDAV
         /// </summary>
         private static T RunSync<T>(Func<Task<T>> func)
             => Task.Run(func).GetAwaiter().GetResult();
-    }
-
-    // ── PipelineReadStream ────────────────────────────────────────────────────
-    // A thin Stream wrapper that feeds a local file through System.IO.Pipelines
-    // into HttpClient's request body.  HttpClient pulls data via Stream.Read /
-    // Stream.ReadAsync; this class satisfies those calls from a PipeReader so
-    // that the file is always read in pool-backed, zero-copy segments.
-
-    internal sealed class PipelineReadStream : Stream
-    {
-        // We delegate to a plain FileStream with async I/O enabled.
-        // System.IO.Pipelines wraps it with pooled buffer management on top.
-        private readonly FileStream _inner;
-
-        internal PipelineReadStream(string path)
-        {
-            _inner = new FileStream(
-                path,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read,
-                bufferSize: 65_536,
-                useAsync: true);
-        }
-
-        public override bool CanRead  => true;
-        public override bool CanSeek  => _inner.CanSeek;
-        public override bool CanWrite => false;
-        public override long Length   => _inner.Length;
-
-        public override long Position
-        {
-            get => _inner.Position;
-            set => _inner.Position = value;
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-            => _inner.Read(buffer, offset, count);
-
-        public override Task<int> ReadAsync(byte[] buffer, int offset, int count,
-            System.Threading.CancellationToken cancellationToken)
-            => _inner.ReadAsync(buffer, offset, count, cancellationToken);
-
-        public override long Seek(long offset, SeekOrigin origin)
-            => _inner.Seek(offset, origin);
-
-        public override void Flush()  => _inner.Flush();
-        public override void SetLength(long value) => throw new NotSupportedException();
-        public override void Write(byte[] buffer, int offset, int count)
-            => throw new NotSupportedException();
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing) _inner.Dispose();
-            base.Dispose(disposing);
-        }
     }
 }
