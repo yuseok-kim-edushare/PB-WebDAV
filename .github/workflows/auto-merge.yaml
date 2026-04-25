@@ -62,7 +62,7 @@ jobs:
               });
 
               const successful = checks.check_runs.filter(c =>
-                c.conclusion === 'success' || c.status === 'completed'
+                c.conclusion === 'success'
               );
 
               if (successful.length === 0) {
@@ -80,10 +80,13 @@ jobs:
       - name: Merge PR
         id: merge-pr
         uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr-info.outputs.pr-number }}
+          PR_TITLE: ${{ steps.pr-info.outputs.pr-title }}
         with:
           script: |
-            const prNumber = ${{ steps.pr-info.outputs.pr-number }};
-            const prTitle  = '${{ steps.pr-info.outputs.pr-title }}';
+            const prNumber = parseInt(process.env.PR_NUMBER, 10);
+            const prTitle  = process.env.PR_TITLE;
 
             try {
               const result = await github.rest.pulls.merge({
@@ -106,10 +109,13 @@ jobs:
 
       - name: Trigger CD workflow
         uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr-info.outputs.pr-number }}
+          MERGE_SHA: ${{ steps.merge-pr.outputs.merge-sha }}
         with:
           script: |
-            const prNumber = ${{ steps.pr-info.outputs.pr-number }};
-            const mergeSha = '${{ steps.merge-pr.outputs.merge-sha }}';
+            const prNumber = parseInt(process.env.PR_NUMBER, 10);
+            const mergeSha = process.env.MERGE_SHA;
 
             try {
               await github.rest.repos.createDispatchEvent({
