@@ -33,6 +33,15 @@ PowerBuilder 2019 R3에는 WebDAV 기능이 내장되어 있지 않습니다.
 | 필요 OS | Windows 7 SP1 / Windows Server 2008 R2 SP1 이상 |
 | PowerBuilder | PB 2019 R3 (직접 .NET 어셈블리) 또는 COM 지원 PB 버전 |
 
+### 주요 의존성
+
+| 패키지 | 용도 |
+|---|---|
+| `System.IO.Pipelines` 10.0.7 | 풀 기반 세그먼트 I/O |
+| `System.Memory` 4.6.3 | `Span<T>` / `Memory<T>` 백포트 |
+| `System.Buffers` 4.6.1 | `ArrayPool<T>` |
+| `System.Net.Http` (내장) | 모든 WebDAV 동작용 `HttpClient` |
+
 > 릴리스 DLL은 ILRepack으로 **단일 자체 포함 `PBWebDAV.dll`** 로 병합됩니다.
 
 ---
