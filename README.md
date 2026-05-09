@@ -37,9 +37,9 @@ This library fills the gap by providing:
 
 | Package | Purpose |
 |---|---|
-| `System.IO.Pipelines` 8.x | Pool-backed segment I/O |
-| `System.Memory` 4.5.x | `Span<T>` / `Memory<T>` back-port |
-| `System.Buffers` 4.5.x | `ArrayPool<T>` |
+| `System.IO.Pipelines` 10.0.7 | Pool-backed segment I/O |
+| `System.Memory` 4.6.3 | `Span<T>` / `Memory<T>` back-port |
+| `System.Buffers` 4.6.1 | `ArrayPool<T>` |
 | `System.Net.Http` (in-box) | `HttpClient` for all WebDAV verbs |
 
 > The release DLL is ILRepacked into a **single self-contained `PBWebDAV.dll`** — no extra files to deploy.
