@@ -28,7 +28,7 @@
 
   <ItemGroup>
     <!-- Memory-efficient pipeline I/O — works on net48 via netstandard2.0 TFM -->
-    <PackageReference Include="System.IO.Pipelines" Version="10.0.8" />
+    <PackageReference Include="System.IO.Pipelines" Version="10.0.9" />
     <!-- Span<T> / Memory<T> / SequenceReader<T> back-ports -->
     <PackageReference Include="System.Memory"  Version="4.6.3" />
     <!-- ArrayPool<T> -->
