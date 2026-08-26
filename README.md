@@ -182,7 +182,7 @@ WebDAV_Destroy()
 
 ## Native Export Reference (Native AOT)
 
-All exports live in `NativeExports.cs`, are `Cdecl`, and use UTF-16 (`wchar_t*` / PB `string`) parameters. `bool` results are returned as `int` (1 = true, 0 = false). State is a process-wide singleton created by `WebDAV_Initialize` / `WebDAV_InitializeWithProxy` and released by `WebDAV_Destroy`.
+All exports live in `NativeExports.cs`, use `Stdcall` (PowerBuilder's default Windows calling convention), and accept UTF-16 (`wchar_t*` / PB `string`) parameters. `bool` results are returned as `int` (1 = true, 0 = false). State is a process-wide singleton created by `WebDAV_Initialize` / `WebDAV_InitializeWithProxy` and released by `WebDAV_Destroy`.
 
 | Export | Description |
 |---|---|

@@ -142,7 +142,7 @@ PowerBuilder 및 COM 환경에서는 관리 클래스(`IWebDavItem`) 반환 타�
 
 ## Native 익스포트 참조 (Native AOT)
 
-모든 익스포트는 `NativeExports.cs`에 있으며, `Cdecl` 호출 규약과 UTF-16(`wchar_t*` / PB `string`) 파라미터를 사용합니다. `bool` 결과는 `int`(1 = true, 0 = false)로 반환됩니다. 상태는 `WebDAV_Initialize` / `WebDAV_InitializeWithProxy`로 생성되고 `WebDAV_Destroy`로 해제되는 프로세스 전역 싱글턴입니다.
+모든 익스포트는 `NativeExports.cs`에 있으며, PowerBuilder의 Windows 기본 호출 규약인 `Stdcall`과 UTF-16(`wchar_t*` / PB `string`) 파라미터를 사용합니다. `bool` 결과는 `int`(1 = true, 0 = false)로 반환됩니다. 상태는 `WebDAV_Initialize` / `WebDAV_InitializeWithProxy`로 생성되고 `WebDAV_Destroy`로 해제되는 프로세스 전역 싱글턴입니다.
 
 | 익스포트 | 설명 |
 |---|---|
