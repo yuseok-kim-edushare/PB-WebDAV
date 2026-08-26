@@ -40,11 +40,22 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: "10.0.x"
+
     - name: Restore dependencies
       run: dotnet restore PB-WebDAV.csproj
 
-    - name: Build solution (Release)
-      run: dotnet publish PB-WebDAV.csproj --configuration Release --no-restore -p:DelaySign=true
+    - name: Build solution (Release, net48)
+      run: dotnet publish PB-WebDAV.csproj --configuration Release --framework net48 --no-restore -p:DelaySign=true
+
+    - name: Publish Native AOT (win-x64)
+      run: dotnet publish PB-WebDAV.csproj --configuration Release --framework net10.0-windows -r win-x64
+
+    - name: Publish Native AOT (win-x86)
+      run: dotnet publish PB-WebDAV.csproj --configuration Release --framework net10.0-windows -r win-x86
 
     # ── ILRepack: merge all NuGet dependencies into a single DLL ──────────────
     - name: Install ILRepack
@@ -83,6 +94,40 @@ jobs:
         & $regasm "${{ github.workspace }}\release-files\PBWebDAV.dll" `
                   /tlb:"${{ github.workspace }}\release-files\PBWebDAV.tlb" `
                   /nologo
+
+    # ── Stage release tree: net48 (merged DLL + TLB) + native-aot per RID ───────
+    - name: Prepare release staging
+      shell: pwsh
+      run: |
+        $projectRoot = "${{ github.workspace }}"
+        $releaseRoot = Join-Path $projectRoot "release-files"
+        $stagingDir  = Join-Path $releaseRoot "PBWebDAV-staging"
+        New-Item -Path $stagingDir -ItemType Directory -Force | Out-Null
+
+        $net48Dest = Join-Path $stagingDir "net48"
+        New-Item -Path $net48Dest -ItemType Directory -Force | Out-Null
+        Copy-Item (Join-Path $releaseRoot "PBWebDAV.dll") $net48Dest -Force
+        Copy-Item (Join-Path $releaseRoot "PBWebDAV.tlb") $net48Dest -Force
+
+        $aotBase = Join-Path $projectRoot "bin\Release\net10.0-windows"
+        foreach ($rid in @("win-x64", "win-x86")) {
+          $aotSrc  = Join-Path $aotBase "$rid\publish"
+          $aotDest = Join-Path $stagingDir "native-aot\$rid"
+          if (!(Test-Path $aotSrc)) {
+            Write-Error "Native AOT publish output not found at: $aotSrc"
+            exit 1
+          }
+          New-Item -Path $aotDest -ItemType Directory -Force | Out-Null
+          Copy-Item -Path "$aotSrc\*" -Destination $aotDest -Recurse -Force
+        }
+
+        Write-Host "Release staging contents:"
+        Get-ChildItem -Path $stagingDir -Recurse -File | ForEach-Object {
+          Write-Host $_.FullName.Replace($stagingDir, "")
+        }
+
+        echo "STAGING_DIR=$stagingDir" >> $env:GITHUB_ENV
+        echo "RELEASE_ROOT=$releaseRoot" >> $env:GITHUB_ENV
 
     # ── Auto-version based on latest tag + commit messages ────────────────────
     - name: Get latest release version and generate release notes
@@ -129,12 +174,25 @@ jobs:
         $releaseNotes += (git diff HEAD ^$latestRelease --compact-summary 2>$null) -join "`n"
         $releaseNotes | Out-File -FilePath releaseNotes.txt -Encoding utf8
 
+    # ── Zip staging tree as PBWebDAV-{version}.zip ────────────────────────────
+    - name: Create release archive
+      shell: pwsh
+      run: |
+        $zipName = "PBWebDAV-${{ env.new_release }}.zip"
+        $zipPath = Join-Path $env:RELEASE_ROOT $zipName
+        $renamed = Join-Path (Split-Path $env:STAGING_DIR -Parent) "PBWebDAV-${{ env.new_release }}"
+        Rename-Item -Path $env:STAGING_DIR -NewName (Split-Path $renamed -Leaf)
+        Compress-Archive -Path $renamed -DestinationPath $zipPath -Force
+        echo "zip_path=$zipPath" >> $env:GITHUB_ENV
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
       with:
         files: |
           ${{ github.workspace }}\release-files\PBWebDAV.dll
           ${{ github.workspace }}\release-files\PBWebDAV.tlb
+          ${{ env.zip_path }}
         tag_name: ${{ env.new_release }}
         name: ${{ env.new_release }}
         body_path: releaseNotes.txt
+        fail_on_unmatched_files: true
