@@ -5,8 +5,8 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("PBWebDAV")]
 [assembly: AssemblyDescription("Memory-optimal WebDAV client for PowerBuilder 2019 R3 via .NET 4.8 / COM interop")]
 [assembly: AssemblyProduct("PBWebDAV")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.2.0")]
+[assembly: AssemblyFileVersion("1.1.2.0")]
 
 // -----------------------------------------------------------------
 // COM visibility
