@@ -24,7 +24,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Get USERPROFILE and set CACHE_PATH
       id: set_cache_path
@@ -35,7 +35,7 @@ jobs:
         echo "CACHE_PATH=$cachePath" >> $env:GITHUB_ENV
 
     - name: Cache NuGet packages
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ~/.nuget/packages
