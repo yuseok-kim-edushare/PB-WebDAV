@@ -3,6 +3,8 @@
 PowerBuilder 2019 R3를 위한 메모리 최적화 WebDAV 클라이언트 라이브러리입니다.  
 .NET Framework 4.8 기반의 `System.IO.Pipelines`을 사용하며, COM 듀얼 인터페이스를 통해 직접 .NET 어셈블리 참조 또는 OLE COM 오브젝트로 사용할 수 있습니다.
 
+또한 **Native AOT** 빌드(net10.0-windows)도 함께 제공되어, `PBWebDAV.dll`을 .NET 런타임 설치 없이 동작하는 자체 포함 네이티브 공유 라이브러리로 게시하고 C 호출 규약의 `WebDAV_*` 함수를 노출합니다.
+
 *Read this in other languages: [English](README.md)*
 
 [![CI Build](https://github.com/yuseok-kim-edushare/PB-WebDAV/actions/workflows/ci.yaml/badge.svg)](https://github.com/yuseok-kim-edushare/PB-WebDAV/actions/workflows/ci.yaml)
@@ -19,6 +21,7 @@ PowerBuilder 2019 R3에는 WebDAV 기능이 내장되어 있지 않습니다.
 - **리소스 관리** — DELETE, MKCOL, COPY, MOVE, HEAD
 - **인증** — Basic 자격증명 + HTTP 프록시 지원
 - **COM 인터op** — 듀얼 인터페이스(`IDispatch` + vtable) 지원
+- **Native AOT 익스포트** — 동일한 기능을 자체 포함 네이티브 DLL의 `WebDAV_*` C 함수로 노출하며, PB `LOCAL EXTERNAL FUNCTION` 또는 C/C++에서 호출 가능
 
 ---
 
@@ -26,12 +29,18 @@ PowerBuilder 2019 R3에는 WebDAV 기능이 내장되어 있지 않습니다.
 
 ### 대상 프레임워크
 
+이 프로젝트는 동일한 `PB-WebDAV.csproj`에서 `net48`과 `net10.0-windows`를 멀티 타깃으로 빌드합니다.
+
 | 항목 | 값 |
 |---|---|
-| 프레임워크 | .NET Framework **4.8** |
-| 런타임 다운로드 | [.NET Framework 4.8](https://dotnet.microsoft.com/ko-kr/download/dotnet-framework/net48) |
+| 프레임워크 (COM/.NET 어셈블리) | .NET Framework **4.8** |
+| 프레임워크 (Native AOT) | **.NET 10** (`net10.0-windows`, `PublishAot=true`, `NativeLib=Shared`) |
+| 대상 아키텍처 (AOT) | `win-x64`, `win-x86` |
+| 런타임 다운로드 (net48) | [.NET Framework 4.8](https://dotnet.microsoft.com/ko-kr/download/dotnet-framework/net48) |
 | 필요 OS | Windows 7 SP1 / Windows Server 2008 R2 SP1 이상 |
-| PowerBuilder | PB 2019 R3 (직접 .NET 어셈블리) 또는 COM 지원 PB 버전 |
+| PowerBuilder | PB 2019 R3 (직접 .NET 어셈블리, COM, 또는 Native AOT 외부 함수) |
+
+> Native AOT 빌드는 자체 포함(self-contained)이라 .NET 런타임 설치가 필요 없으며, 아키텍처별(`win-x64` / `win-x86`) 네이티브 `PBWebDAV.dll`을 생성합니다 — PowerBuilder/호스트 비트 수에 맞는 것을 선택하세요.
 
 ### 주요 의존성
 
@@ -79,6 +88,37 @@ DESTROY oClient
 %WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe PBWebDAV.dll /tlb /codebase
 ```
 
+### 방법 3 — Native AOT 외부 함수 (.NET/COM 런타임 불필요)
+
+비트 수에 맞는 `native-aot/win-x64` 또는 `native-aot/win-x86`의 `PBWebDAV.dll`을 사용하고, 익스포트를 `LOCAL EXTERNAL FUNCTION`으로 선언합니다:
+
+```powerscript
+FUNCTION int WebDAV_Initialize(string baseUrl, string username, string password) LIBRARY "PBWebDAV.dll"
+FUNCTION int WebDAV_ListDirectory(string remotePath) LIBRARY "PBWebDAV.dll"
+FUNCTION int WebDAV_GetItemHref(int index, REF string buffer, int capacity) LIBRARY "PBWebDAV.dll"
+FUNCTION int WebDAV_GetLastError(REF string buffer, int capacity) LIBRARY "PBWebDAV.dll"
+FUNCTION int WebDAV_DownloadFile(string remotePath, string localPath) LIBRARY "PBWebDAV.dll"
+// ... 전체 목록은 아래 Native 익스포트 참조 표 참고
+```
+
+```powerscript
+long ll_count, i
+string ls_buf
+
+WebDAV_Initialize("https://dav.example.com/files/", "alice", "s3cr3t")
+ll_count = WebDAV_ListDirectory("/documents/")
+
+FOR i = 1 TO ll_count - 1
+    ls_buf = Space(1024)
+    WebDAV_GetItemHref(i, ls_buf, Len(ls_buf))
+    MessageBox("항목", ls_buf)
+NEXT
+
+WebDAV_Destroy()
+```
+
+> 문자열을 반환하는 익스포트는 **호출자 버퍼 패턴**을 사용합니다: 미리 크기를 지정한 `Space(n)` 버퍼와 길이를 전달하면, 반환값은 (널 종료 문자 제외) 필요한 길이입니다. Native AOT용 PowerBuilder 동작 샘플은 추후 첨부될 예정입니다.
+
 ---
 
 ## 항목 접근 API
@@ -100,16 +140,66 @@ PowerBuilder 및 COM 환경에서는 관리 클래스(`IWebDavItem`) 반환 타�
 
 ---
 
+## Native 익스포트 참조 (Native AOT)
+
+모든 익스포트는 `NativeExports.cs`에 있으며, `Cdecl` 호출 규약과 UTF-16(`wchar_t*` / PB `string`) 파라미터를 사용합니다. `bool` 결과는 `int`(1 = true, 0 = false)로 반환됩니다. 상태는 `WebDAV_Initialize` / `WebDAV_InitializeWithProxy`로 생성되고 `WebDAV_Destroy`로 해제되는 프로세스 전역 싱글턴입니다.
+
+| 익스포트 | 설명 |
+|---|---|
+| `WebDAV_Initialize(url, user, pass)` → `int` | 싱글턴 클라이언트 생성; 1 = 성공 |
+| `WebDAV_InitializeWithProxy(url, user, pass, proxyUrl, proxyUser, proxyPass)` → `int` | 프록시를 통한 연결 |
+| `WebDAV_SetTimeout(seconds)` | 기본값(30초) 재정의 |
+| `WebDAV_ListDirectory(path)` → `int` | PROPFIND Depth:1; 항목 수 반환, 실패 시 –1 |
+| `WebDAV_GetItemCount()` → `int` | 마지막 ListDirectory 결과 개수 |
+| `WebDAV_GetItemHref(index, buffer, capacity)` → `int` | 필요 길이 반환; 버퍼가 충분하면 복사 |
+| `WebDAV_GetItemDisplayName(index, buffer, capacity)` → `int` | 동일 패턴 |
+| `WebDAV_GetItemIsCollection(index)` → `int` | 1 = 디렉터리 |
+| `WebDAV_GetItemContentLength(index)` → `long` | 파일 크기(바이트) |
+| `WebDAV_GetItemContentType(index, buffer, capacity)` → `int` | MIME 타입 |
+| `WebDAV_GetItemLastModified(index, buffer, capacity)` → `int` | RFC 1123 최종 수정일 |
+| `WebDAV_GetItemETag(index, buffer, capacity)` → `int` | ETag |
+| `WebDAV_GetItemCreationDate(index, buffer, capacity)` → `int` | ISO 8601 생성일 |
+| `WebDAV_GetItemStatusCode(index)` → `int` | 해당 propstat 항목의 HTTP 상태 |
+| `WebDAV_DownloadFile(remote, local)` → `int` | GET → 로컬 파일 |
+| `WebDAV_UploadFile(local, remote)` → `int` | 로컬 파일 → PUT |
+| `WebDAV_DeleteItem(path)` → `int` | HTTP DELETE |
+| `WebDAV_CreateDirectory(path)` → `int` | HTTP MKCOL |
+| `WebDAV_CopyItem(src, dst, overwrite)` → `int` | 서버 측 COPY |
+| `WebDAV_MoveItem(src, dst, overwrite)` → `int` | 서버 측 MOVE |
+| `WebDAV_ItemExists(path)` → `int` | HEAD 확인 |
+| `WebDAV_GetLastError(buffer, capacity)` → `int` | 마지막 호출의 오류 메시지 |
+| `WebDAV_GetLastStatusCode()` → `int` | 마지막 호출의 HTTP 상태 |
+| `WebDAV_Destroy()` | 싱글턴 클라이언트 해제 |
+
+> 먼저 `capacity = 0`으로 호출해 필요한 버퍼 길이를 조회한 뒤, 그 길이에 맞춘 `Space(n)` 버퍼로 다시 호출하세요.
+
+---
+
 ## 빌드 정보
 
-필요 환경: **Windows** + **.NET SDK** (최신 버전)
+필요 환경: **Windows** + **.NET 10 SDK** (동일한 csproj에서 `net48`과 `net10.0-windows`를 멀티 타깃으로 빌드)
 
 ```powershell
+# 복원
 dotnet restore PB-WebDAV.csproj
-dotnet build   PB-WebDAV.csproj -c Release
+
+# COM / .NET 어셈블리 빌드 (net48)
+dotnet build PB-WebDAV.csproj -c Release -f net48
+# 출력: bin\Release\net48\PBWebDAV.dll
+
+# Native AOT 빌드 (net10.0-windows), 아키텍처별로 각각 실행
+dotnet publish PB-WebDAV.csproj -c Release -f net10.0-windows -r win-x64
+dotnet publish PB-WebDAV.csproj -c Release -f net10.0-windows -r win-x86
+# 출력: bin\Release\net10.0-windows\{win-x64|win-x86}\publish\PBWebDAV.dll
 ```
 
-CI/CD 명령어는 [`.github/workflows/`](.github/workflows/)에서 확인하세요.
+CI/CD 명령어는 [`.github/workflows/`](.github/workflows/)에서 확인하세요. 릴리스 압축 파일(`PBWebDAV-{version}.zip`)의 구성:
+
+```
+net48/               ILRepack으로 병합된 COM/.NET 어셈블리 DLL + PBWebDAV.tlb
+native-aot/win-x64/  Native AOT 자체 포함 공유 라이브러리 (x64)
+native-aot/win-x86/  Native AOT 자체 포함 공유 라이브러리 (x86)
+```
 
 ---
 

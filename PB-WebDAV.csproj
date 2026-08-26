@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFrameworks>net48;net10.0-windows</TargetFrameworks>
     <AssemblyName>PBWebDAV</AssemblyName>
     <RootNamespace>PBWebDAV</RootNamespace>
     <Platforms>AnyCPU;x86;x64</Platforms>
@@ -11,6 +11,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>false</ImplicitUsings>
     <Deterministic>true</Deterministic>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Optimize Condition="'$(Configuration)' == 'Release'">true</Optimize>
 
     <!-- COM interop: suppress auto-generated AssemblyInfo so we own it -->
@@ -26,17 +27,28 @@
     -->
   </PropertyGroup>
 
+  <!-- Native AOT / C-Export settings: only for the .NET 10 Windows target -->
+  <PropertyGroup Condition="'$(TargetFramework)'=='net10.0-windows'">
+    <PublishAot>true</PublishAot>
+    <NativeLib>Shared</NativeLib>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+    <IsAotCompatible>true</IsAotCompatible>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- Memory-efficient pipeline I/O — works on net48 via netstandard2.0 TFM -->
     <PackageReference Include="System.IO.Pipelines" Version="10.0.8" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='net48'">
     <!-- Span<T> / Memory<T> / SequenceReader<T> back-ports -->
     <PackageReference Include="System.Memory"  Version="4.6.3" />
     <!-- ArrayPool<T> -->
     <PackageReference Include="System.Buffers" Version="4.6.1" />
-  </ItemGroup>
-
-  <!-- net48 ships System.Net.Http in-box but SDK-style projects need an explicit reference -->
-  <ItemGroup>
+    <!-- net48 ships System.Net.Http in-box but SDK-style projects need an explicit reference -->
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 

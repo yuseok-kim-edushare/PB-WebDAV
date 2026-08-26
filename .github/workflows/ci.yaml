@@ -44,11 +44,19 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: "10.0.x"
+
     - name: Restore NuGet packages
       run: dotnet restore PB-WebDAV.csproj
 
-    - name: Build (Release)
-      run: dotnet build PB-WebDAV.csproj --configuration Release --no-restore
+    - name: Build net48 (Release)
+      run: dotnet build PB-WebDAV.csproj --configuration Release --framework net48 --no-restore
+
+    - name: Build net10.0-windows (Release)
+      run: dotnet build PB-WebDAV.csproj --configuration Release --framework net10.0-windows --no-restore
 
     - name: Test (Release)
       run: dotnet test PBWebDAV.Tests/PBWebDAV.Tests.csproj --configuration Release --no-restore
