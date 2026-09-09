@@ -40,7 +40,7 @@
 
   <ItemGroup>
     <!-- Memory-efficient pipeline I/O — works on net48 via netstandard2.0 TFM -->
-    <PackageReference Include="System.IO.Pipelines" Version="10.0.11" />
+    <PackageReference Include="System.IO.Pipelines" Version="10.0.12" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net48'">
