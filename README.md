@@ -3,7 +3,7 @@
 Memory-optimal WebDAV client library for **PowerBuilder 2019 R3**, built on .NET Framework 4.8 with `System.IO.Pipelines`.  
 Exposes a COM dual interface so it works as both a direct .NET assembly reference **and** an OLE COM object.
 
-Also ships a **Native AOT** build (net10.0-windows) that publishes `PBWebDAV.dll` as a self-contained native shared library with C-callable `WebDAV_*` exports — no .NET runtime install required on the target machine.
+Also ships a **Native AOT** build (net11.0-windows) that publishes `PBWebDAV.dll` as a self-contained native shared library with C-callable `WebDAV_*` exports — no .NET runtime install required on the target machine.
 
 *다른 언어로 읽기: [한국어](README.ko.md)*
 
@@ -29,24 +29,25 @@ This library fills the gap by providing:
 
 ### Target Frameworks
 
-The project multi-targets `net48` and `net10.0-windows`; both build from the same `PB-WebDAV.csproj`.
+The project multi-targets `net48` and `net11.0-windows`; both build from the same `PB-WebDAV.csproj`.
 
 | Item | Value |
 |---|---|
 | Framework (COM/.NET assembly) | .NET Framework **4.8** |
-| Framework (Native AOT) | **.NET 10** (`net10.0-windows`, `PublishAot=true`, `NativeLib=Shared`) |
+| Framework (Native AOT) | **.NET 11** (`net11.0-windows`, `PublishAot=true`, `NativeLib=Shared`) |
 | Runtime identifiers (AOT) | `win-x64`, `win-x86` |
 | Runtime download (net48) | [.NET Framework 4.8](https://dotnet.microsoft.com/en-us/download/dotnet-framework/net48) |
-| Required OS | Windows 7 SP1 / Windows Server 2008 R2 SP1 or later |
+| Required OS (net48 COM) | Windows 7 SP1 / Windows Server 2008 R2 SP1 or later |
+| Required OS (Native AOT) | Windows 10 version 1607 / Windows Server 2016 or later, x86-64-v2 CPU |
 | PowerBuilder | PB 2019 R3 (direct .NET assembly, COM, or native AOT external functions) |
 
-> The Native AOT build is self-contained (no .NET runtime install needed) and produces a native `PBWebDAV.dll` per architecture (`win-x64` / `win-x86`) — pick the one matching your PowerBuilder/host bitness.
+> The Native AOT build is self-contained (no .NET runtime install needed) and produces a native `PBWebDAV.dll` per architecture (`win-x64` / `win-x86`) — pick the one matching your PowerBuilder/host bitness. It follows the .NET 11 support baseline (Windows 10 1607+ and an x86-64-v2 CPU).
 
 ### Key Dependencies
 
 | Package | Purpose |
 |---|---|
-| `System.IO.Pipelines` 10.0.7 | Pool-backed segment I/O |
+| `System.IO.Pipelines` 11.0.0 | Pool-backed segment I/O |
 | `System.Memory` 4.6.3 | `Span<T>` / `Memory<T>` back-port |
 | `System.Buffers` 4.6.1 | `ArrayPool<T>` |
 | `System.Net.Http` (in-box) | `HttpClient` for all WebDAV verbs |
@@ -217,7 +218,7 @@ All exports live in `NativeExports.cs`, use `Stdcall` (PowerBuilder's default Wi
 
 ## Build Information
 
-Requirements: **Windows** with **.NET 10 SDK** (multi-targets `net48` and `net10.0-windows` from the same csproj).
+Requirements: **Windows** with **.NET 11 SDK** (multi-targets `net48` and `net11.0-windows` from the same csproj).
 
 ```powershell
 # Restore
@@ -227,10 +228,10 @@ dotnet restore PB-WebDAV.csproj
 dotnet build PB-WebDAV.csproj -c Release -f net48
 # Output: bin\Release\net48\PBWebDAV.dll
 
-# Native AOT build (net10.0-windows), one per architecture
-dotnet publish PB-WebDAV.csproj -c Release -f net10.0-windows -r win-x64
-dotnet publish PB-WebDAV.csproj -c Release -f net10.0-windows -r win-x86
-# Output: bin\Release\net10.0-windows\{win-x64|win-x86}\publish\PBWebDAV.dll
+# Native AOT build (net11.0-windows), one per architecture
+dotnet publish PB-WebDAV.csproj -c Release -f net11.0-windows -r win-x64
+dotnet publish PB-WebDAV.csproj -c Release -f net11.0-windows -r win-x86
+# Output: bin\Release\net11.0-windows\{win-x64|win-x86}\publish\PBWebDAV.dll
 ```
 
 CI/CD commands are in [`.github/workflows/`](.github/workflows/). Release archives (`PBWebDAV-{version}.zip`) contain:

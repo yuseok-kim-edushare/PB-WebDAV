@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace PBWebDAV
 {
     /// <summary>
-    /// Native AOT (C-export) entry points. When published with net10.0-windows +
+    /// Native AOT (C-export) entry points. When published with net11.0-windows +
     /// NativeLib=Shared, these functions are exported from the native PBWebDAV.dll
     /// and callable from PowerBuilder LOCAL EXTERNAL FUNCTION declarations or C/C++.
     ///

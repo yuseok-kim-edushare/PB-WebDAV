@@ -3,7 +3,7 @@
 PowerBuilder 2019 R3를 위한 메모리 최적화 WebDAV 클라이언트 라이브러리입니다.  
 .NET Framework 4.8 기반의 `System.IO.Pipelines`을 사용하며, COM 듀얼 인터페이스를 통해 직접 .NET 어셈블리 참조 또는 OLE COM 오브젝트로 사용할 수 있습니다.
 
-또한 **Native AOT** 빌드(net10.0-windows)도 함께 제공되어, `PBWebDAV.dll`을 .NET 런타임 설치 없이 동작하는 자체 포함 네이티브 공유 라이브러리로 게시하고 C 호출 규약의 `WebDAV_*` 함수를 노출합니다.
+또한 **Native AOT** 빌드(net11.0-windows)도 함께 제공되어, `PBWebDAV.dll`을 .NET 런타임 설치 없이 동작하는 자체 포함 네이티브 공유 라이브러리로 게시하고 C 호출 규약의 `WebDAV_*` 함수를 노출합니다.
 
 *Read this in other languages: [English](README.md)*
 
@@ -29,24 +29,25 @@ PowerBuilder 2019 R3에는 WebDAV 기능이 내장되어 있지 않습니다.
 
 ### 대상 프레임워크
 
-이 프로젝트는 동일한 `PB-WebDAV.csproj`에서 `net48`과 `net10.0-windows`를 멀티 타깃으로 빌드합니다.
+이 프로젝트는 동일한 `PB-WebDAV.csproj`에서 `net48`과 `net11.0-windows`를 멀티 타깃으로 빌드합니다.
 
 | 항목 | 값 |
 |---|---|
 | 프레임워크 (COM/.NET 어셈블리) | .NET Framework **4.8** |
-| 프레임워크 (Native AOT) | **.NET 10** (`net10.0-windows`, `PublishAot=true`, `NativeLib=Shared`) |
+| 프레임워크 (Native AOT) | **.NET 11** (`net11.0-windows`, `PublishAot=true`, `NativeLib=Shared`) |
 | 대상 아키텍처 (AOT) | `win-x64`, `win-x86` |
 | 런타임 다운로드 (net48) | [.NET Framework 4.8](https://dotnet.microsoft.com/ko-kr/download/dotnet-framework/net48) |
-| 필요 OS | Windows 7 SP1 / Windows Server 2008 R2 SP1 이상 |
+| 필요 OS (net48 COM) | Windows 7 SP1 / Windows Server 2008 R2 SP1 이상 |
+| 필요 OS (Native AOT) | Windows 10 버전 1607 / Windows Server 2016 이상, x86-64-v2 CPU |
 | PowerBuilder | PB 2019 R3 (직접 .NET 어셈블리, COM, 또는 Native AOT 외부 함수) |
 
-> Native AOT 빌드는 자체 포함(self-contained)이라 .NET 런타임 설치가 필요 없으며, 아키텍처별(`win-x64` / `win-x86`) 네이티브 `PBWebDAV.dll`을 생성합니다 — PowerBuilder/호스트 비트 수에 맞는 것을 선택하세요.
+> Native AOT 빌드는 자체 포함(self-contained)이라 .NET 런타임 설치가 필요 없으며, 아키텍처별(`win-x64` / `win-x86`) 네이티브 `PBWebDAV.dll`을 생성합니다 — PowerBuilder/호스트 비트 수에 맞는 것을 선택하세요. .NET 11 지원 기준(Windows 10 1607 이상, x86-64-v2 CPU)을 따릅니다.
 
 ### 주요 의존성
 
 | 패키지 | 용도 |
 |---|---|
-| `System.IO.Pipelines` 10.0.7 | 풀 기반 세그먼트 I/O |
+| `System.IO.Pipelines` 11.0.0 | 풀 기반 세그먼트 I/O |
 | `System.Memory` 4.6.3 | `Span<T>` / `Memory<T>` 백포트 |
 | `System.Buffers` 4.6.1 | `ArrayPool<T>` |
 | `System.Net.Http` (내장) | 모든 WebDAV 동작용 `HttpClient` |
@@ -177,7 +178,7 @@ PowerBuilder 및 COM 환경에서는 관리 클래스(`IWebDavItem`) 반환 타�
 
 ## 빌드 정보
 
-필요 환경: **Windows** + **.NET 10 SDK** (동일한 csproj에서 `net48`과 `net10.0-windows`를 멀티 타깃으로 빌드)
+필요 환경: **Windows** + **.NET 11 SDK** (동일한 csproj에서 `net48`과 `net11.0-windows`를 멀티 타깃으로 빌드)
 
 ```powershell
 # 복원
@@ -187,10 +188,10 @@ dotnet restore PB-WebDAV.csproj
 dotnet build PB-WebDAV.csproj -c Release -f net48
 # 출력: bin\Release\net48\PBWebDAV.dll
 
-# Native AOT 빌드 (net10.0-windows), 아키텍처별로 각각 실행
-dotnet publish PB-WebDAV.csproj -c Release -f net10.0-windows -r win-x64
-dotnet publish PB-WebDAV.csproj -c Release -f net10.0-windows -r win-x86
-# 출력: bin\Release\net10.0-windows\{win-x64|win-x86}\publish\PBWebDAV.dll
+# Native AOT 빌드 (net11.0-windows), 아키텍처별로 각각 실행
+dotnet publish PB-WebDAV.csproj -c Release -f net11.0-windows -r win-x64
+dotnet publish PB-WebDAV.csproj -c Release -f net11.0-windows -r win-x86
+# 출력: bin\Release\net11.0-windows\{win-x64|win-x86}\publish\PBWebDAV.dll
 ```
 
 CI/CD 명령어는 [`.github/workflows/`](.github/workflows/)에서 확인하세요. 릴리스 압축 파일(`PBWebDAV-{version}.zip`)의 구성:

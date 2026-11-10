@@ -43,7 +43,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: "10.0.x"
+        dotnet-version: "11.0.x"
 
     - name: Restore dependencies
       run: dotnet restore PB-WebDAV.csproj
@@ -52,10 +52,10 @@ jobs:
       run: dotnet publish PB-WebDAV.csproj --configuration Release --framework net48 --no-restore -p:DelaySign=true
 
     - name: Publish Native AOT (win-x64)
-      run: dotnet publish PB-WebDAV.csproj --configuration Release --framework net10.0-windows -r win-x64
+      run: dotnet publish PB-WebDAV.csproj --configuration Release --framework net11.0-windows -r win-x64
 
     - name: Publish Native AOT (win-x86)
-      run: dotnet publish PB-WebDAV.csproj --configuration Release --framework net10.0-windows -r win-x86
+      run: dotnet publish PB-WebDAV.csproj --configuration Release --framework net11.0-windows -r win-x86
 
     # ── ILRepack: merge all NuGet dependencies into a single DLL ──────────────
     - name: Install ILRepack
@@ -109,7 +109,7 @@ jobs:
         Copy-Item (Join-Path $releaseRoot "PBWebDAV.dll") $net48Dest -Force
         Copy-Item (Join-Path $releaseRoot "PBWebDAV.tlb") $net48Dest -Force
 
-        $aotBase = Join-Path $projectRoot "bin\Release\net10.0-windows"
+        $aotBase = Join-Path $projectRoot "bin\Release\net11.0-windows"
         foreach ($rid in @("win-x64", "win-x86")) {
           $aotSrc  = Join-Path $aotBase "$rid\publish"
           $aotDest = Join-Path $stagingDir "native-aot\$rid"

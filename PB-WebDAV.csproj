@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net48;net10.0-windows</TargetFrameworks>
+    <TargetFrameworks>net48;net11.0-windows</TargetFrameworks>
     <AssemblyName>PBWebDAV</AssemblyName>
     <RootNamespace>PBWebDAV</RootNamespace>
     <Platforms>AnyCPU;x86;x64</Platforms>
@@ -27,8 +27,8 @@
     -->
   </PropertyGroup>
 
-  <!-- Native AOT / C-Export settings: only for the .NET 10 Windows target -->
-  <PropertyGroup Condition="'$(TargetFramework)'=='net10.0-windows'">
+  <!-- Native AOT / C-Export settings: only for the .NET 11 Windows target -->
+  <PropertyGroup Condition="'$(TargetFramework)'=='net11.0-windows'">
     <PublishAot>true</PublishAot>
     <NativeLib>Shared</NativeLib>
     <SelfContained>true</SelfContained>
@@ -40,7 +40,7 @@
 
   <ItemGroup>
     <!-- Memory-efficient pipeline I/O — works on net48 via netstandard2.0 TFM -->
-    <PackageReference Include="System.IO.Pipelines" Version="10.0.14" />
+    <PackageReference Include="System.IO.Pipelines" Version="11.0.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net48'">
