@@ -178,7 +178,7 @@ PowerBuilder 및 COM 환경에서는 관리 클래스(`IWebDavItem`) 반환 타�
 
 ## 빌드 정보
 
-필요 환경: **Windows** + **.NET 11 SDK** (동일한 csproj에서 `net48`과 `net11.0-windows`를 멀티 타깃으로 빌드)
+필요 환경: **Windows** + **.NET 11 SDK** (동일한 csproj에서 `net48`과 `net11.0-windows`를 멀티 타깃으로 빌드). 단위 테스트는 Microsoft Testing Platform 위의 xUnit.net v3이며, `dotnet test` 러너는 `global.json`에서 선택합니다.
 
 ```powershell
 # 복원

@@ -218,7 +218,7 @@ All exports live in `NativeExports.cs`, use `Stdcall` (PowerBuilder's default Wi
 
 ## Build Information
 
-Requirements: **Windows** with **.NET 11 SDK** (multi-targets `net48` and `net11.0-windows` from the same csproj).
+Requirements: **Windows** with **.NET 11 SDK** (multi-targets `net48` and `net11.0-windows` from the same csproj). Unit tests use xUnit.net v3 on Microsoft Testing Platform; `global.json` selects that runner for `dotnet test`.
 
 ```powershell
 # Restore
